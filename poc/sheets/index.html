@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="시트 시제품">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>구글 시트 연결 시제품</title>
+  <!--
+    코웍-코인 · 집행 상세 비공개(구글 시트) 시제품 — 앱과 분리된 테스트 페이지
+    · 확인할 것: 구글 로그인(팝업 · 이동 방식), 시트 만들기 · 고르기, 읽기 · 쓰기 — PC · 안드로이드 · 아이폰, 브라우저 · 설치 앱
+    · 시트 내용은 이 화면에만 표시 — 서버 · 콘솔 · 저장소로 보내지 않음
+    · 브라우저 저장소에는 시험 결과(성공/실패)와 연결한 파일 ID만 이 탭 동안 보관(sessionStorage)
+    · 설정값(OAuth 클라이언트 ID · API 키 · 프로젝트 번호)은 공개돼도 되는 값 — 배포 때 config.js 로 생성 (deploy/SHEETS_POC.md)
+  -->
+  <style>
+    :root {
+      --bg: #f8f4ee; --surface: #fff; --fg: #1d1b18; --muted: #6b655c; --line: #e3dccf;
+      --accent: #1d5c48; --accent-soft: #e3efe9; --bad: #9c3328; --bad-soft: #f7e4e1; --warn: #8a5300; --warn-soft: #f8eedd;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #141311; --surface: #1d1c19; --fg: #ece7df; --muted: #a39b8f; --line: #34312c;
+        --accent: #72c4a5; --accent-soft: #1d2f28; --bad: #f0958a; --bad-soft: #3a211e; --warn: #e7b363; --warn-soft: #34291a; color-scheme: dark; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif; word-break: keep-all; }
+    main { max-width: 640px; margin: 0 auto; padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); display: flex; flex-direction: column; gap: 16px; }
+    h1 { font-size: 1.35rem; margin: 4px 0 0; }
+    h2 { font-size: 1rem; margin: 0; display: flex; gap: 8px; align-items: baseline; }
+    h2 .n { color: var(--accent); font-family: ui-monospace, Consolas, monospace; }
+    p { margin: 0; }
+    .muted { color: var(--muted); font-size: 0.88rem; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+    .notice { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; font-size: 0.9rem; }
+    .warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 0.88rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; }
+    button { font: inherit; font-weight: 600; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); padding: 10px 14px; min-height: 44px; cursor: pointer; }
+    button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+    @media (prefers-color-scheme: dark) { button.primary { color: #10201a; } }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    input { font: inherit; width: 100%; padding: 10px 12px; min-height: 44px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+    .status { font-size: 0.88rem; padding: 8px 10px; border-radius: 8px; background: var(--bg); min-height: 1.6em; white-space: pre-wrap; }
+    .status.ok { background: var(--accent-soft); color: var(--accent); }
+    .status.bad { background: var(--bad-soft); color: var(--bad); }
+    dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; font-size: 0.9rem; }
+    dt { color: var(--muted); }
+    dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; font-size: 0.82rem; }
+    td.num, th.num { text-align: right; }
+    ul.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; font-size: 0.92rem; }
+    ul.checks li { display: grid; grid-template-columns: 28px 1fr; gap: 6px; }
+    .mark { font-weight: 700; }
+    .mark.ok { color: var(--accent); } .mark.bad { color: var(--bad); } .mark.none { color: var(--muted); }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="muted">코웍-코인 · 시험용 페이지</p>
+    <h1>구글 시트 연결 시제품</h1>
+  </header>
+
+  <p class="notice">집행 상세를 <b>내 구글 시트</b>에 두고 앱에서 읽는 방식이 이 기기에서 되는지 확인하는 페이지입니다. 시트 내용은 이 화면에만 보이고 서버나 다른 곳으로 보내지 않습니다. 시험에는 <b>가상 데이터</b>만 쓰세요.</p>
+
+  <p id="configWarn" class="warnbox hidden">설정값(config.js)이 없어 구글 기능을 시험할 수 없습니다. deploy/SHEETS_POC.md 의 준비 단계를 먼저 해 주세요.</p>
+
+  <section class="card">
+    <h2><span class="n">0</span>실행 환경</h2>
+    <dl>
+      <dt>실행 방식</dt><dd id="envMode">-</dd>
+      <dt>기기</dt><dd id="envDevice">-</dd>
+      <dt>주소</dt><dd id="envOrigin">-</dd>
+    </dl>
+    <p class="muted" id="installHint">설치 앱에서도 시험하려면: 안드로이드 크롬은 메뉴 → ‘홈 화면에 추가’(앱 설치), 아이폰 사파리는 공유 → ‘홈 화면에 추가’ 후 홈 화면 아이콘으로 여세요.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">1</span>구글 로그인</h2>
+    <p class="muted">두 방식을 모두 시험해 주세요. 앱이 받는 권한은 ‘이 앱으로 만들거나 직접 고른 파일만’(drive.file)입니다.</p>
+    <div class="row">
+      <button class="primary" id="btnPopup">팝업 방식으로 로그인</button>
+      <button id="btnRedirect">이동 방식으로 로그인</button>
+    </div>
+    <div class="status" id="stLogin">로그인 전</div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>시트 연결</h2>
+    <div class="row"><button class="primary" id="btnCreate" disabled>새 시트 만들기</button></div>
+    <p class="muted">또는 내 드라이브의 기존 시트 링크를 붙여 넣고, 구글 창에서 같은 시트를 고르세요.</p>
+    <input id="inLink" type="url" inputmode="url" autocomplete="off" placeholder="https://docs.google.com/spreadsheets/d/…">
+    <div class="row"><button id="btnPick" disabled>구글 창에서 확인</button></div>
+    <div class="status" id="stSheet">연결된 시트 없음</div>
+    <dl id="sheetInfo" class="hidden">
+      <dt>시트 이름</dt><dd id="siName">-</dd>
+      <dt>공유 상태</dt><dd id="siShared">-</dd>
+      <dt>열기</dt><dd><a id="siLink" href="#" target="_blank" rel="noopener noreferrer">구글 시트에서 열기</a></dd>
+    </dl>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>읽기 · 쓰기</h2>
+    <div class="row">
+      <button id="btnAppend" disabled>가상 행 추가</button>
+      <button class="primary" id="btnRead" disabled>읽고 월별 합계 계산</button>
+    </div>
+    <div class="status" id="stData">시트를 연결하면 시험할 수 있습니다</div>
+    <table id="totals" class="hidden">
+      <thead><tr><th>월</th><th>예산</th><th class="num">건수</th><th class="num">합계</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <p class="muted">앱에서는 이 월별 합계만 Supabase에 저장하게 됩니다. 시제품은 아무 데도 저장하지 않습니다.</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">4</span>시험 결과</h2>
+    <ul class="checks" id="checks"></ul>
+    <div class="row">
+      <button class="primary" id="btnCopy">결과 복사</button>
+      <button id="btnRevoke" disabled>로그인 해제</button>
+    </div>
+    <p class="muted">복사되는 내용은 실행 환경과 성공·실패 여부뿐입니다. 시트 이름과 내용은 들어가지 않습니다.</p>
+  </section>
+</main>
+<script src="./config.js" onerror="window.POC_CONFIG = window.POC_CONFIG || null"></script>
+<script src="./app.js"></script>
+</body>
+</html>
